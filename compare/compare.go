@@ -10,7 +10,7 @@ import (
 	"fmt"
 )
 
-func GetDifferences()  {
+func GetDifferences() {
 	var firstFilePath string
 	var secondFilePath string
 
@@ -21,10 +21,12 @@ func GetDifferences()  {
 	_, err = fmt.Scan(&secondFilePath)
 	data.CheckError(err)
 
-	firstFileData := data.GetFileData(firstFilePath)
-	secondFileData := data.GetFileData(secondFilePath)
+	channel := make(chan []string)
 
-	difference := getDifferenceBetweenSlices(firstFileData, secondFileData)
+	go data.GetFileData(firstFilePath, channel)
+	go data.GetFileData(secondFilePath, channel)
+
+	difference := getDifferenceBetweenSlices(channel)
 
 	if len(difference) > 0 {
 		createCsvWithDifferences(difference)
@@ -35,7 +37,8 @@ func GetDifferences()  {
 
 }
 
-func getDifferenceBetweenSlices(firstSlice, secondSlice []string) []string {
+func getDifferenceBetweenSlices(chan1 chan []string) []string {
+	firstSlice, secondSlice := <-chan1, <-chan1
 	mb := make(map[string]struct{}, len(secondSlice))
 
 	for _, i := range secondSlice {
@@ -53,7 +56,7 @@ func getDifferenceBetweenSlices(firstSlice, secondSlice []string) []string {
 	return diff
 }
 
-func createCsvWithDifferences(diffSlice []string)  {
+func createCsvWithDifferences(diffSlice []string) {
 	sec := data.GetTimestamp()
 
 	filename := "difference" + sec + ".csv"
@@ -64,6 +67,7 @@ func createCsvWithDifferences(diffSlice []string)  {
 	csvWriter := csv.NewWriter(csvFile)
 
 	for _, row := range diffSlice {
-		csvWriter.Write([]string{row})
+		err := csvWriter.Write([]string{row})
+		data.CheckError(err)
 	}
 }

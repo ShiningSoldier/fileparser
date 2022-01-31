@@ -8,10 +8,14 @@ import (
 	"time"
 )
 
-func GetFileData(pathToFile string) []string {
+func GetFileData(pathToFile string, channel chan []string) {
 	var result []string
 	file, err := os.Open(pathToFile)
-	defer file.Close()
+	CheckError(err)
+
+	defer func() {
+		err = file.Close()
+	}()
 	CheckError(err)
 
 	csvLines, err := csv.NewReader(file).ReadAll()
@@ -21,7 +25,7 @@ func GetFileData(pathToFile string) []string {
 		result = append(result, line[0])
 	}
 
-	return result
+	channel <- result
 }
 
 func GetTimestamp() string {
@@ -29,7 +33,7 @@ func GetTimestamp() string {
 	return strconv.FormatInt(now.Unix(), 10)
 }
 
-func CheckError(err error)  {
+func CheckError(err error) {
 	if err != nil {
 		log.Fatal(err)
 	}
